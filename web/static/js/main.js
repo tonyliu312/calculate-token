@@ -274,8 +274,11 @@ function highlightBracketsAndMarkers(tokens) {
     let pairColorIndex = 0;
     
     // 处理括号配对（支持嵌套）
+    // 为每种括号类型单独处理，确保嵌套括号使用不同颜色
     for (const pair of BRACKET_PAIRS) {
         const stack = [];
+        // 每种括号类型使用独立的颜色索引范围
+        let typeColorIndex = pairColorIndex;
         
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];

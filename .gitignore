@@ -31,6 +31,8 @@ uploads/
 !快速运行指南.txt
 !打包清单.txt
 !打包说明.txt
+!推送到GitHub.txt
+!打包完成总结.md
 
 # Offline packages
 packages/
@@ -38,7 +40,8 @@ packages/
 # Build outputs
 build/
 dist/
-*.spec
+# Keep spec file for PyInstaller
+!TokenCalculator.spec
 
 # IDE
 .vscode/

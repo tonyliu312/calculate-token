@@ -239,22 +239,22 @@ async function handleCalculate() {
 
 // 括号配对配置
 const BRACKET_PAIRS = [
-    { open: '(', close: ')' },
-    { open: '[', close: ']' },
-    { open: '{', close: '}' },
-    { open: '<', close: '>' },
-    { open: '「', close: '」' },
-    { open: '『', close: '』' },
-    { open: '【', close: '】' },
-    { open: '《', close: '》' },
-    { open: '"', close: '"' },
-    { open: '"', close: '"' },
-    { open: '\u2018', close: '\u2019' }, // 左单引号 ' 和右单引号 '
-    { open: '\u201C', close: '\u201D' }, // 左双引号 " 和右双引号 "
-    { open: '（', close: '）' },
-    { open: '［', close: '］' },
-    { open: '｛', close: '｝' },
-    { open: '〈', close: '〉' },
+    { open: '(', close: ')', type: 'paren' },
+    { open: '[', close: ']', type: 'bracket' },
+    { open: '{', close: '}', type: 'brace' },
+    { open: '<', close: '>', type: 'angle' },
+    { open: '「', close: '」', type: 'quote' },
+    { open: '『', close: '』', type: 'quote' },
+    { open: '【', close: '】', type: 'bracket' },
+    { open: '《', close: '》', type: 'quote' },
+    { open: '"', close: '"', type: 'quote' },
+    { open: '"', close: '"', type: 'quote' },
+    { open: '\u2018', close: '\u2019', type: 'quote' }, // 左单引号 ' 和右单引号 '
+    { open: '\u201C', close: '\u201D', type: 'quote' }, // 左双引号 " 和右双引号 "
+    { open: '（', close: '）', type: 'paren' },
+    { open: '［', close: '］', type: 'bracket' },
+    { open: '｛', close: '｝', type: 'brace' },
+    { open: '〈', close: '〉', type: 'angle' },
 ];
 
 // 起止符号配置（特殊token标记）
@@ -273,38 +273,59 @@ function highlightBracketsAndMarkers(tokens) {
     const pairInfo = new Array(tokens.length).fill(null);
     let pairColorIndex = 0;
     
-    // 处理括号配对
+    // 处理括号配对（支持嵌套）
     for (const pair of BRACKET_PAIRS) {
         const stack = [];
         
         for (let i = 0; i < tokens.length; i++) {
             const token = tokens[i];
             
-            // 检查是否是开括号（精确匹配或token等于开括号）
-            const isOpenBracket = token === pair.open || 
-                                 (token.length === 1 && token === pair.open);
+            // 检查token是否包含开括号或闭括号
+            const hasOpen = token.includes(pair.open);
+            const hasClose = token.includes(pair.close);
             
-            // 检查是否是闭括号（精确匹配或token等于闭括号）
-            const isCloseBracket = token === pair.close || 
-                                  (token.length === 1 && token === pair.close);
-            
-            if (isOpenBracket) {
-                // 遇到开括号，入栈
-                stack.push({ index: i, color: pairColorIndex });
-            } else if (isCloseBracket) {
-                // 遇到闭括号，尝试配对
-                if (stack.length > 0) {
-                    const openInfo = stack.pop();
-                    // 只有成功配对才标记
-                    pairInfo[openInfo.index] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: true };
-                    pairInfo[i] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: false };
+            // 对于引号类型，需要特殊处理（引号可以出现在token中间）
+            if (pair.type === 'quote') {
+                // 引号：检查token是否以引号开始或结束
+                if (token.startsWith(pair.open) || token === pair.open) {
+                    stack.push({ index: i, color: pairColorIndex });
+                } else if (token.endsWith(pair.close) || token === pair.close || token.includes(pair.close)) {
+                    if (stack.length > 0) {
+                        const openInfo = stack.pop();
+                        // 为这对引号分配颜色
+                        const currentColor = openInfo.color;
+                        pairInfo[openInfo.index] = { type: 'bracket', pairIndex: currentColor % 8, isOpen: true };
+                        pairInfo[i] = { type: 'bracket', pairIndex: currentColor % 8, isOpen: false };
+                        // 每配对成功一对，增加颜色索引（确保不同对使用不同颜色）
+                        if (stack.length === 0) {
+                            pairColorIndex++;
+                        }
+                    }
+                }
+            } else {
+                // 其他括号类型：精确匹配或token等于括号
+                const isOpenBracket = token === pair.open || 
+                                     (token.length === 1 && token === pair.open) ||
+                                     (hasOpen && !hasClose);
+                
+                const isCloseBracket = token === pair.close || 
+                                      (token.length === 1 && token === pair.close) ||
+                                      (hasClose && !hasOpen);
+                
+                if (isOpenBracket) {
+                    // 遇到开括号，入栈（每对使用不同的颜色索引）
+                    stack.push({ index: i, color: pairColorIndex });
+                    pairColorIndex++; // 为下一对括号准备新颜色
+                } else if (isCloseBracket) {
+                    // 遇到闭括号，尝试配对
+                    if (stack.length > 0) {
+                        const openInfo = stack.pop();
+                        // 使用开括号时分配的颜色
+                        pairInfo[openInfo.index] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: true };
+                        pairInfo[i] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: false };
+                    }
                 }
             }
-        }
-        
-        // 如果成功配对了括号，使用下一个颜色索引
-        if (pairInfo.some((p, idx) => p && p.pairIndex === pairColorIndex % 8)) {
-            pairColorIndex++;
         }
     }
     

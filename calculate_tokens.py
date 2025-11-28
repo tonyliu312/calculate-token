@@ -47,11 +47,67 @@ class TokenCalculator:
             local_mode: 是否使用本地模式（从本地文件系统加载）
             tokenizers_dir: 本地tokenizer目录路径（local_mode=True时使用）
         """
-        self.models = models or list(MODELS.keys())
-        self.tokenizers: Dict[str, any] = {}
         self.local_mode = local_mode
         self.tokenizers_dir = Path(tokenizers_dir) if tokenizers_dir else Path(__file__).parent / "tokenizers"
+        
+        # 如果是本地模式，自动扫描tokenizers目录
+        if local_mode:
+            self.available_models = self._scan_tokenizers_dir()
+        else:
+            # 在线模式，使用MODELS字典
+            self.available_models = list(MODELS.keys())
+        
+        # 如果指定了models，只使用指定的模型
+        if models:
+            self.models = [m for m in models if m in self.available_models]
+        else:
+            self.models = self.available_models
+        
+        self.tokenizers: Dict[str, any] = {}
         self._load_tokenizers()
+    
+    def _scan_tokenizers_dir(self) -> List[str]:
+        """
+        扫描tokenizers目录，自动发现所有可用的模型
+        
+        Returns:
+            模型键名列表
+        """
+        models = []
+        
+        if not self.tokenizers_dir.exists():
+            print(f"警告: tokenizers目录不存在: {self.tokenizers_dir}")
+            return models
+        
+        # 扫描目录，查找所有子目录（每个子目录代表一个模型）
+        print(f"扫描tokenizers目录: {self.tokenizers_dir}")
+        scanned_models = []
+        for item in self.tokenizers_dir.iterdir():
+            if item.is_dir() and not item.name.startswith('.'):
+                # 检查是否是有效的tokenizer目录（包含tokenizer.json或tokenizer_config.json）
+                tokenizer_json = item / "tokenizer.json"
+                tokenizer_config = item / "tokenizer_config.json"
+                if tokenizer_json.exists() or tokenizer_config.exists():
+                    scanned_models.append(item.name)
+        
+        if scanned_models:
+            print(f"从目录扫描发现 {len(scanned_models)} 个模型")
+            models = sorted(scanned_models)
+        else:
+            print(f"警告: 在 {self.tokenizers_dir} 中未发现任何模型")
+            # 如果目录扫描失败，尝试读取models_index.json作为备选
+            index_file = self.tokenizers_dir / "models_index.json"
+            if index_file.exists():
+                try:
+                    import json
+                    with open(index_file, 'r', encoding='utf-8') as f:
+                        index_data = json.load(f)
+                        models = list(index_data.keys())
+                        print(f"从 models_index.json 读取到 {len(models)} 个模型（备选方案）")
+                except Exception as e:
+                    print(f"警告: 读取 models_index.json 也失败: {e}")
+        
+        return models
     
     def _load_tokenizers(self):
         """加载所有需要的tokenizer"""
@@ -60,13 +116,8 @@ class TokenCalculator:
             print("运行: pip install transformers")
             sys.exit(1)
         
-        print("正在加载tokenizers...")
+        print(f"正在加载 {len(self.models)} 个tokenizers...")
         for model_key in self.models:
-            if model_key not in MODELS:
-                print(f"警告: 未知的模型 '{model_key}'，跳过")
-                continue
-            
-            model_name = MODELS[model_key]
             try:
                 if self.local_mode:
                     # 从本地加载
@@ -81,7 +132,11 @@ class TokenCalculator:
                         local_files_only=True
                     )
                 else:
-                    # 从HuggingFace Hub加载
+                    # 从HuggingFace Hub加载（需要MODELS字典）
+                    if model_key not in MODELS:
+                        print(f"  警告: 未知的模型 '{model_key}'，跳过")
+                        continue
+                    model_name = MODELS[model_key]
                     print(f"  加载 {model_key} ({model_name})...")
                     self.tokenizers[model_key] = AutoTokenizer.from_pretrained(
                         model_name,

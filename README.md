@@ -53,31 +53,7 @@ pip install -r requirements.txt
 python download_tokenizers.py
 ```
 
-这将下载所有17个模型的tokenizer文件到`tokenizers/`目录。首次运行需要网络连接，下载完成后即可离线使用。
-
-## 使用方法
-
-### Web界面（推荐）
-
-#### 开发模式
-
-```bash
-python app.py
-```
-
-然后在浏览器中访问 `http://localhost:5000`
-
-#### Windows打包版本
-
-1. **打包应用**（在有网络的环境中）：
-   ```bash
-   python build_windows.py
-   ```
-
-2. **复制到Windows机器**：
-   - 将 `dist/TokenCalculator` 整个文件夹复制到Windows机器
-   - 双击 `start.bat` 启动应用
-   - 浏览器会自动打开 `http://localhost:5000`
+这将下载所有11个模型的tokenizer文件到`tokenizers/`目录。首次运行需要网络连接，下载完成后即可离线使用。
 
 #### Web界面功能
 

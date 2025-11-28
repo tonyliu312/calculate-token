@@ -222,7 +222,7 @@ def calculate_tokens():
 
 if __name__ == '__main__':
     # 启动Web服务
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5001))
     debug = os.environ.get('DEBUG', 'False').lower() == 'true'
     host = os.environ.get('HOST', '0.0.0.0')  # 0.0.0.0 允许外部访问
     

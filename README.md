@@ -1,71 +1,59 @@
 # Token计算工具
 
-一个用于计算文本在不同大模型tokenizer下token数量的工具，支持Qwen2.5系列和DeepSeek系列模型。提供命令行工具和Web界面两种使用方式。
+一个用于计算文本在不同大模型tokenizer下token数量的工具，支持Qwen系列和DeepSeek系列模型。提供Web界面和命令行两种使用方式。
 
 ## 功能特性
 
-- 🌐 **Web界面**：简约美观的Web界面（openrouter/chat风格），支持文本输入和文件上传
-- 📊 **多模型支持**：支持11个主流模型的tokenizer（Qwen3和DeepSeek V3/V3.1系列）
-- 💾 **离线运行**：支持预下载tokenizer，完全离线运行
-- 🚀 **Web服务**：直接运行Python脚本启动Web服务，支持局域网和外网访问
+- 🌐 **Web界面**：简约美观的Web界面，支持文本输入和文件上传
+- 📊 **多模型支持**：支持26个主流模型的tokenizer（Qwen2.5、Qwen3和DeepSeek系列）
+- 🎨 **高亮显示**：成对的括号和引号使用不同颜色高亮显示
 - 📈 **详细结果**：显示token数量、字符/Token比率、分词预览等
 
 ## 支持的模型
 
-### Qwen3系列（7个模型）
+### Qwen3系列
 - qwen3-0.6b, qwen3-1.7b, qwen3-4b, qwen3-8b, qwen3-14b, qwen3-32b, qwen3-30b-a3b
 
-### DeepSeek系列（4个模型）
-- deepseek-v3, deepseek-v3-base
-- deepseek-v3.1, deepseek-v3.1-base
+### Qwen2.5系列
+- qwen2.5-0.5b, qwen2.5-1.5b, qwen2.5-3b, qwen2.5-7b, qwen2.5-14b, qwen2.5-32b, qwen2.5-72b
+- qwen2.5-coder-0.5b, qwen2.5-coder-1.5b, qwen2.5-coder-7b, qwen2.5-coder-32b
 
-## 安装
+### DeepSeek系列
+- deepseek-v3, deepseek-v3-base, deepseek-v3.1, deepseek-v3.1-base
+- deepseek-chat-1.3b, deepseek-coder-1.3b, deepseek-coder-6.7b, deepseek-coder-33b
 
-### 1. 克隆或下载项目
+## 快速开始
 
-```bash
-git clone <repository-url>
-cd calculate-token
-```
-
-### 2. 安装依赖
-
-#### 在线安装（有网络连接）
+### 1. 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-#### 离线安装（无网络连接）
-
-如果Windows机器无法联网，请参考 [OFFLINE_INSTALL.md](OFFLINE_INSTALL.md) 进行离线安装。
-
-**⚠️ 重要提示**：当前 `packages/` 目录中的包是针对Python 3.11的。如果你的Python版本是3.8，请使用 `download_packages_py38.bat` 重新下载。
-
-**快速步骤：**
-1. 在有网络的机器上运行 `download_packages.bat`（Python 3.11）或 `download_packages_py38.bat`（Python 3.8）下载所有依赖包
-2. 将 `packages/` 目录、`requirements.txt` 和 `install_offline.bat` 复制到离线Windows机器
-3. 在Windows机器上运行 `install_offline.bat`
-
-### 3. 下载tokenizer（可选，用于离线运行）
+### 2. 下载tokenizer
 
 ```bash
 python download_tokenizers.py
 ```
 
-这将下载所有11个模型的tokenizer文件到`tokenizers/`目录。首次运行需要网络连接，下载完成后即可离线使用。
+### 3. 启动服务
 
-#### Web界面功能
+```bash
+# Windows
+start_server.bat
 
-- **文本输入**：直接在文本框中输入或粘贴文本
-- **文件上传**：支持上传文本文件（.txt, .md, .py, .js, .html, .css, .json等）
-- **模型选择**：可以选择一个或多个模型进行计算
-- **结果展示**：
-  - Token数量统计
-  - 字符/Token比率
-  - 分词结果预览（前100个token）
+# Linux/Mac
+./start_server.sh
 
-### 命令行工具
+# 或直接运行
+python app.py
+```
+
+### 4. 访问Web界面
+
+浏览器打开：http://localhost:5001
+
+## 命令行工具
 
 ```bash
 # 从文件读取
@@ -75,10 +63,7 @@ python calculate_tokens.py -f input.txt
 python calculate_tokens.py -t "Hello, world! 你好，世界！"
 
 # 指定特定模型
-python calculate_tokens.py -t "Hello" --models qwen2.5-7b deepseek-chat-7b
-
-# 从标准输入读取
-echo "Hello, world!" | python calculate_tokens.py
+python calculate_tokens.py -t "Hello" --models qwen3-8b deepseek-v3
 
 # 列出所有支持的模型
 python calculate_tokens.py --list-models
@@ -89,121 +74,42 @@ python calculate_tokens.py --list-models
 ```
 calculate-token/
 ├── app.py                    # Flask Web应用
-├── calculate_tokens.py        # 核心计算逻辑
-├── download_tokenizers.py     # Tokenizer下载脚本
-├── build_windows.py           # Windows打包脚本
-├── start.bat                  # Windows启动脚本
-├── web/                       # Web界面文件
+├── calculate_tokens.py       # 核心计算逻辑
+├── download_tokenizers.py    # Tokenizer下载脚本
+├── start_server.bat          # Windows启动脚本
+├── start_server.sh           # Linux/Mac启动脚本
+├── run.py                    # Python启动脚本
+├── web/                      # Web界面文件
 │   ├── templates/
-│   │   └── index.html        # 主页面
+│   │   └── index.html
 │   └── static/
-│       ├── css/
-│       │   └── style.css     # 样式文件
-│       └── js/
-│           └── main.js       # 前端交互逻辑
-├── tokenizers/                # 预下载的tokenizer文件（运行download_tokenizers.py后生成）
-├── requirements.txt           # Python依赖
-└── README.md                  # 本文件
+│       ├── css/style.css
+│       └── js/main.js
+├── tokenizers/               # 下载的tokenizer文件
+├── requirements.txt          # Python依赖
+└── README.md
 ```
 
-## 运行方式
+## 配置选项
 
-### 直接运行Web服务（推荐）
-
-#### Windows
-
-```cmd
-python app.py
-```
-
-或使用启动脚本：
-```cmd
-start_server.bat
-```
-
-#### Linux/Mac
+可以通过环境变量配置端口和主机：
 
 ```bash
-python3 app.py
-```
-
-或使用启动脚本：
-```bash
-./start_server.sh
-```
-
-### 访问Web界面
-
-启动后，浏览器访问：
-- **本地**: http://localhost:5001
-- **局域网**: http://<服务器IP>:5001
-- **外网**: http://<公网IP>:5001（需要配置防火墙）
-
-### 配置选项
-
-可以通过环境变量配置：
-
-```cmd
-REM Windows
-set PORT=8080
-set HOST=0.0.0.0
-python app.py
-```
-
-```bash
-# Linux/Mac
+# 修改端口
 export PORT=8080
+python app.py
+
+# 允许外部访问
 export HOST=0.0.0.0
-python3 app.py
+python app.py
 ```
-
-详细部署说明请参考：`DEPLOYMENT.md`
-
-### 打包注意事项
-
-- **文件大小**：完整打包后约500MB-1GB（取决于tokenizer文件大小）
-- **离线运行**：打包前必须运行 `download_tokenizers.py` 下载tokenizer，否则无法离线运行
-- **首次运行**：如果未下载tokenizer，应用会尝试从网络下载（需要网络连接）
 
 ## 技术栈
 
 - **后端**：Flask (Python)
 - **前端**：原生HTML/CSS/JavaScript
 - **AI模型**：Transformers (HuggingFace)
-- **打包工具**：PyInstaller
-
-## 常见问题
-
-### Q: 为什么打包后的文件这么大？
-
-A: 因为包含了：
-- Python运行时环境
-- Transformers库及其依赖
-- 所有17个模型的tokenizer文件
-- PyTorch库（如果使用CPU版本会小一些）
-
-### Q: 可以只打包部分模型吗？
-
-A: 可以。修改 `download_tokenizers.py` 中的 `MODELS` 字典，只下载需要的模型，然后重新打包。
-
-### Q: 如何减小打包文件大小？
-
-A: 
-1. 只下载需要的模型tokenizer
-2. 使用CPU版本的PyTorch（如果不需要GPU）
-3. 使用PyInstaller的UPX压缩（需要安装UPX）
-
-### Q: 打包后的应用无法启动？
-
-A: 检查：
-1. 是否在Windows系统上运行
-2. 是否有杀毒软件拦截
-3. 查看错误日志（如果有控制台窗口）
 
 ## 许可证
 
 MIT License
-
-## 贡献
-
-欢迎提交Issue和Pull Request！

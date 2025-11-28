@@ -19,8 +19,19 @@ const selectNoneBtn = document.getElementById('select-none');
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
-    loadModels();
-    setupEventListeners();
+    console.log('页面加载完成，开始初始化...');
+    
+    // 检查必要的DOM元素是否存在
+    if (!modelList) {
+        console.error('modelList元素不存在，请检查HTML结构');
+        return;
+    }
+    
+    // 延迟一点加载，确保DOM完全准备好
+    setTimeout(() => {
+        loadModels();
+        setupEventListeners();
+    }, 100);
 });
 
 // 设置事件监听器
@@ -97,6 +108,11 @@ function updateCharCount() {
 async function loadModels() {
     try {
         const response = await fetch('/api/models');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP错误: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.success) {
@@ -104,35 +120,56 @@ async function loadModels() {
             selectedModels = availableModels.map(m => m.key); // 默认全选可用模型
             updateModelList();
         } else {
-            showError('加载模型列表失败');
+            console.error('加载模型列表失败:', data.error || '未知错误');
+            showError('加载模型列表失败: ' + (data.error || '未知错误'));
+            modelList.innerHTML = '<div class="loading" style="color: var(--error-color);">加载失败: ' + (data.error || '未知错误') + '</div>';
         }
     } catch (error) {
+        console.error('加载模型列表时出错:', error);
         showError(`加载模型列表时出错: ${error.message}`);
+        modelList.innerHTML = '<div class="loading" style="color: var(--error-color);">加载失败: ' + error.message + '</div>';
     }
 }
 
 // 更新模型列表显示
 function updateModelList() {
+    if (!modelList) {
+        console.error('modelList元素不存在');
+        return;
+    }
+    
     if (availableModels.length === 0) {
         modelList.innerHTML = '<div class="loading">暂无可用模型</div>';
         return;
     }
 
-    modelList.innerHTML = availableModels.map(model => {
-        const isChecked = selectedModels.includes(model.key);
-        return `
-            <div class="model-item ${!model.available ? 'unavailable' : ''}">
-                <input 
-                    type="checkbox" 
-                    id="model-${model.key}" 
-                    ${isChecked ? 'checked' : ''}
-                    ${!model.available ? 'disabled' : ''}
-                    onchange="toggleModel('${model.key}')"
-                >
-                <label for="model-${model.key}">${model.key}</label>
-            </div>
-        `;
-    }).join('');
+    try {
+        modelList.innerHTML = availableModels.map(model => {
+            const isChecked = selectedModels.includes(model.key);
+            // 转义HTML特殊字符，防止XSS
+            const modelKey = model.key
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+            return `
+                <div class="model-item ${!model.available ? 'unavailable' : ''}">
+                    <input 
+                        type="checkbox" 
+                        id="model-${modelKey}" 
+                        ${isChecked ? 'checked' : ''}
+                        ${!model.available ? 'disabled' : ''}
+                        onchange="toggleModel('${modelKey}')"
+                    >
+                    <label for="model-${modelKey}">${modelKey}</label>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('更新模型列表时出错:', error);
+        modelList.innerHTML = '<div class="loading" style="color: var(--error-color);">更新列表失败: ' + error.message + '</div>';
+    }
 }
 
 // 切换模型选择

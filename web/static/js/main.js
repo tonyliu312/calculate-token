@@ -247,8 +247,8 @@ const BRACKET_PAIRS = [
     { open: '『', close: '』', type: 'quote' },
     { open: '【', close: '】', type: 'bracket' },
     { open: '《', close: '》', type: 'quote' },
-    { open: '"', close: '"', type: 'quote' },
-    { open: '"', close: '"', type: 'quote' },
+    { open: '"', close: '"', type: 'quote' },  // 标准双引号
+    { open: '"', close: '"', type: 'quote' },  // 智能双引号（左右不同）
     { open: '\u2018', close: '\u2019', type: 'quote' }, // 左单引号 ' 和右单引号 '
     { open: '\u201C', close: '\u201D', type: 'quote' }, // 左双引号 " 和右双引号 "
     { open: '（', close: '）', type: 'paren' },

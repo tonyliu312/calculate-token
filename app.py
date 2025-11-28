@@ -79,6 +79,17 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/favicon.ico')
+def favicon():
+    """返回favicon"""
+    # 返回SVG格式的favicon
+    from flask import Response
+    svg_icon = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+        <text y="0.9em" font-size="90" fill="#4a9eff">🔢</text>
+    </svg>'''
+    return Response(svg_icon, mimetype='image/svg+xml')
+
+
 @app.route('/api/models', methods=['GET'])
 def get_models():
     """获取可用模型列表"""

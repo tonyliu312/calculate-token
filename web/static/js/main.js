@@ -289,32 +289,40 @@ function highlightBracketsAndMarkers(tokens) {
             // 对于引号类型，需要特殊处理（引号可以出现在token中间）
             if (pair.type === 'quote') {
                 // 引号匹配：需要更精确的逻辑
-                // 检查token是否以引号开始（开引号）
-                const startsWithQuote = token.startsWith(pair.open) && token !== pair.close;
-                // 检查token是否以引号结束（闭引号），且不是开引号
-                const endsWithQuote = token.endsWith(pair.close) && token !== pair.open;
-                // 检查token是否完全等于引号
-                const isQuoteOnly = isExactOpen || isExactClose || isOnlyOpen || isOnlyClose;
+                // 对于JSON等场景，引号通常是独立的token或出现在token边界
+                
+                // 检查是否是独立的引号token（完全等于引号字符）
+                const isStandaloneQuote = isExactOpen || isExactClose || isOnlyOpen || isOnlyClose;
+                
+                // 检查token边界处的引号
+                const startsWithOpen = token.startsWith(pair.open);
+                const startsWithClose = token.startsWith(pair.close);
+                const endsWithOpen = token.endsWith(pair.open);
+                const endsWithClose = token.endsWith(pair.close);
                 
                 // 判断是开引号还是闭引号
                 let isOpenQuote = false;
                 let isCloseQuote = false;
                 
-                if (isQuoteOnly) {
-                    // 如果token完全等于引号，根据引号类型判断
+                if (isStandaloneQuote) {
+                    // 独立的引号token：根据引号字符判断
                     if (token === pair.open || (token.length === 1 && token === pair.open)) {
                         isOpenQuote = true;
                     } else if (token === pair.close || (token.length === 1 && token === pair.close)) {
                         isCloseQuote = true;
                     }
                 } else {
-                    // 如果token包含引号，根据位置判断
-                    if (startsWithQuote && !endsWithQuote) {
+                    // token包含引号：根据位置和上下文判断
+                    // 如果token以开引号开始，且不以闭引号结束，可能是开引号
+                    if (startsWithOpen && !endsWithClose && !startsWithClose) {
                         isOpenQuote = true;
-                    } else if (endsWithQuote && !startsWithQuote) {
+                    }
+                    // 如果token以闭引号结束，且不以开引号开始，可能是闭引号
+                    else if (endsWithClose && !startsWithOpen && !endsWithOpen) {
                         isCloseQuote = true;
-                    } else if (startsWithQuote && endsWithQuote) {
-                        // 如果同时包含开引号和闭引号，优先判断为开引号（在字符串开始）
+                    }
+                    // 如果token以开引号开始且以闭引号结束（如 "text"），优先判断为开引号
+                    else if (startsWithOpen && endsWithClose) {
                         isOpenQuote = true;
                     }
                 }
@@ -473,4 +481,3 @@ function showError(message) {
         errorMessage.style.display = 'none';
     }, 5000);
 }
-

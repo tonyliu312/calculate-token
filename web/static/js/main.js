@@ -249,8 +249,8 @@ const BRACKET_PAIRS = [
     { open: '《', close: '》' },
     { open: '"', close: '"' },
     { open: '"', close: '"' },
-    { open: ''', close: ''' },
-    { open: ''', close: ''' },
+    { open: '\u2018', close: '\u2019' }, // 左单引号 ' 和右单引号 '
+    { open: '\u201C', close: '\u201D' }, // 左双引号 " 和右双引号 "
     { open: '（', close: '）' },
     { open: '［', close: '］' },
     { open: '｛', close: '｝' },

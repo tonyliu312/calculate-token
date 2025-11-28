@@ -5,9 +5,9 @@
 ## 功能特性
 
 - 🌐 **Web界面**：简约美观的Web界面（openrouter/chat风格），支持文本输入和文件上传
-- 📊 **多模型支持**：支持17个主流模型的tokenizer
+- 📊 **多模型支持**：支持11个主流模型的tokenizer（Qwen3和DeepSeek V3/V3.1系列）
 - 💾 **离线运行**：支持预下载tokenizer，完全离线运行
-- 🪟 **Windows打包**：可打包成Windows可执行程序，双击即可运行
+- 🚀 **Web服务**：直接运行Python脚本启动Web服务，支持局域网和外网访问
 - 📈 **详细结果**：显示token数量、字符/Token比率、分词预览等
 
 ## 支持的模型
@@ -130,54 +130,58 @@ calculate-token/
 └── README.md                  # 本文件
 ```
 
-## 打包说明
+## 运行方式
 
-### ⚠️ 重要提示
+### 直接运行Web服务（推荐）
 
-**在Mac/Linux上无法直接打包Windows程序**，需要在Windows机器上进行打包。
+#### Windows
 
-### Windows打包步骤
+```cmd
+python app.py
+```
 
-#### 准备工作（已在Mac上完成）
+或使用启动脚本：
+```cmd
+start_server.bat
+```
 
-- ✅ Python依赖包已下载（`packages/` - 149MB）
-- ✅ Tokenizer文件已下载（`tokenizers/` - 268MB，11个模型）
+#### Linux/Mac
 
-#### 在Windows机器上打包
+```bash
+python3 app.py
+```
 
-1. **复制文件到Windows**：
-   - 将整个项目文件夹复制到Windows机器
+或使用启动脚本：
+```bash
+./start_server.sh
+```
 
-2. **安装Python和依赖**：
-   ```cmd
-   REM 如果有网络
-   pip install -r requirements.txt
-   
-   REM 如果无网络（离线安装）
-   install_offline.bat
-   ```
+### 访问Web界面
 
-3. **执行打包**：
-   ```cmd
-   REM 方法1：使用批处理脚本（推荐）
-   package_for_windows.bat
-   
-   REM 方法2：使用Python脚本
-   python build_windows.py
-   
-   REM 方法3：使用spec文件
-   pyinstaller TokenCalculator.spec
-   ```
+启动后，浏览器访问：
+- **本地**: http://localhost:5000
+- **局域网**: http://<服务器IP>:5000
+- **外网**: http://<公网IP>:5000（需要配置防火墙）
 
-4. **测试和分发**：
-   - 打包完成后，在 `dist/TokenCalculator/` 目录下会生成可执行文件
-   - 双击 `start.bat` 测试运行
-   - 将整个 `TokenCalculator` 文件夹压缩后分发
+### 配置选项
 
-详细说明请参考：
-- `WINDOWS_BUILD_README.md` - 快速打包指南
-- `build_windows_guide.md` - 详细打包说明
-- `DISTRIBUTION.md` - 分发和使用指南
+可以通过环境变量配置：
+
+```cmd
+REM Windows
+set PORT=8080
+set HOST=0.0.0.0
+python app.py
+```
+
+```bash
+# Linux/Mac
+export PORT=8080
+export HOST=0.0.0.0
+python3 app.py
+```
+
+详细部署说明请参考：`DEPLOYMENT.md`
 
 ### 打包注意事项
 

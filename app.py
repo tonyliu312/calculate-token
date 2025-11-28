@@ -221,12 +221,21 @@ def calculate_tokens():
 
 
 if __name__ == '__main__':
-    # 开发模式
+    # 启动Web服务
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'False').lower() == 'true'
+    host = os.environ.get('HOST', '0.0.0.0')  # 0.0.0.0 允许外部访问
     
-    print(f"启动Flask应用，端口: {port}")
-    print(f"访问地址: http://localhost:{port}")
+    print("=" * 60)
+    print("Token计算工具 - Web服务")
+    print("=" * 60)
+    print(f"服务地址: http://{host}:{port}")
+    print(f"本地访问: http://localhost:{port}")
+    print(f"局域网访问: http://<本机IP>:{port}")
+    print("=" * 60)
+    print("按 Ctrl+C 停止服务")
+    print("=" * 60)
+    print()
     
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    app.run(host=host, port=port, debug=debug)
 

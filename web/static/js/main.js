@@ -288,13 +288,43 @@ function highlightBracketsAndMarkers(tokens) {
             
             // 对于引号类型，需要特殊处理（引号可以出现在token中间）
             if (pair.type === 'quote') {
-                // 引号：检查token是否以引号开始或结束，或者是完整的引号
-                if (isExactOpen || isOnlyOpen || token.startsWith(pair.open)) {
+                // 引号匹配：需要更精确的逻辑
+                // 检查token是否以引号开始（开引号）
+                const startsWithQuote = token.startsWith(pair.open) && token !== pair.close;
+                // 检查token是否以引号结束（闭引号），且不是开引号
+                const endsWithQuote = token.endsWith(pair.close) && token !== pair.open;
+                // 检查token是否完全等于引号
+                const isQuoteOnly = isExactOpen || isExactClose || isOnlyOpen || isOnlyClose;
+                
+                // 判断是开引号还是闭引号
+                let isOpenQuote = false;
+                let isCloseQuote = false;
+                
+                if (isQuoteOnly) {
+                    // 如果token完全等于引号，根据引号类型判断
+                    if (token === pair.open || (token.length === 1 && token === pair.open)) {
+                        isOpenQuote = true;
+                    } else if (token === pair.close || (token.length === 1 && token === pair.close)) {
+                        isCloseQuote = true;
+                    }
+                } else {
+                    // 如果token包含引号，根据位置判断
+                    if (startsWithQuote && !endsWithQuote) {
+                        isOpenQuote = true;
+                    } else if (endsWithQuote && !startsWithQuote) {
+                        isCloseQuote = true;
+                    } else if (startsWithQuote && endsWithQuote) {
+                        // 如果同时包含开引号和闭引号，优先判断为开引号（在字符串开始）
+                        isOpenQuote = true;
+                    }
+                }
+                
+                if (isOpenQuote) {
                     // 遇到开引号，入栈并分配颜色
                     stack.push({ index: i, color: pairColorIndex });
                     pairColorIndex++; // 为下一对引号准备新颜色
-                } else if (isExactClose || isOnlyClose || token.endsWith(pair.close) || token.includes(pair.close)) {
-                    // 遇到闭引号，尝试配对
+                } else if (isCloseQuote) {
+                    // 遇到闭引号，尝试配对（从栈顶取出最近的未配对开引号）
                     if (stack.length > 0) {
                         const openInfo = stack.pop();
                         // 使用开引号时分配的颜色

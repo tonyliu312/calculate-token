@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token计算工具</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1>Token计算工具</h1>
+            <p class="subtitle">支持Qwen2.5系列和DeepSeek系列模型</p>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 左侧：模型选择 -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h2>选择模型</h2>
+                    <div class="model-controls">
+                        <button class="btn-link" id="select-all">全选</button>
+                        <button class="btn-link" id="select-none">全不选</button>
+                    </div>
+                    <div class="model-list" id="model-list">
+                        <div class="loading">加载模型中...</div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中间：输入区域 -->
+            <section class="input-section">
+                <div class="input-group">
+                    <label for="text-input">输入文本</label>
+                    <textarea 
+                        id="text-input" 
+                        class="text-input" 
+                        placeholder="在此输入文本，或使用下方文件上传功能..."
+                        rows="12"
+                    ></textarea>
+                    <div class="char-count">
+                        <span id="char-count">0</span> 字符
+                    </div>
+                </div>
+
+                <div class="divider">
+                    <span>或</span>
+                </div>
+
+                <div class="input-group">
+                    <label for="file-input">上传文件</label>
+                    <div class="file-upload">
+                        <input type="file" id="file-input" accept=".txt,.md,.py,.js,.html,.css,.json">
+                        <label for="file-input" class="file-label">
+                            <span class="file-icon">📄</span>
+                            <span class="file-text">点击选择文件或拖拽文件到此处</span>
+                        </label>
+                        <div class="file-name" id="file-name"></div>
+                    </div>
+                </div>
+
+                <button class="btn-primary" id="calculate-btn">
+                    <span class="btn-text">计算Token</span>
+                    <span class="btn-loading" style="display: none;">计算中...</span>
+                </button>
+            </section>
+        </main>
+
+        <!-- 结果区域 -->
+        <section class="results-section" id="results-section" style="display: none;">
+            <h2>计算结果</h2>
+            <div class="results-summary" id="results-summary"></div>
+            <div class="results-table-container">
+                <table class="results-table" id="results-table">
+                    <thead>
+                        <tr>
+                            <th>模型</th>
+                            <th>Token数量</th>
+                            <th>字符/Token</th>
+                            <th>分词预览</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-tbody">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 错误提示 -->
+        <div class="error-message" id="error-message" style="display: none;"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
+

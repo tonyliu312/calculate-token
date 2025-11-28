@@ -1,0 +1,8 @@
+Hello, world! 你好，世界！
+
+这是一个测试文件，用于演示token计算工具的功能。
+This is a test file to demonstrate the token calculation tool.
+
+支持中文和英文混合文本。
+Supports mixed Chinese and English text.
+

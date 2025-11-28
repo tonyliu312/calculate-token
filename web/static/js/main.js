@@ -247,7 +247,7 @@ const BRACKET_PAIRS = [
     { open: '『', close: '』', type: 'quote' },
     { open: '【', close: '】', type: 'bracket' },
     { open: '《', close: '》', type: 'quote' },
-    { open: '"', close: '"', type: 'quote' },  // 标准双引号
+    { open: '"', close: '"', type: 'quote' },  // 标准双引号（左右相同，需要上下文判断）
     { open: '"', close: '"', type: 'quote' },  // 智能双引号（左右不同）
     { open: '\u2018', close: '\u2019', type: 'quote' }, // 左单引号 ' 和右单引号 '
     { open: '\u201C', close: '\u201D', type: 'quote' }, // 左双引号 " 和右双引号 "
@@ -297,6 +297,9 @@ function highlightBracketsAndMarkers(tokens) {
                 // 检查是否是独立的引号token（完全等于引号字符）
                 const isStandaloneQuote = isExactOpen || isExactClose || isOnlyOpen || isOnlyClose;
                 
+                // 对于标准双引号 "，开引号和闭引号是同一个字符，需要根据上下文判断
+                const isSameChar = pair.open === pair.close;
+                
                 // 检查token边界处的引号
                 const startsWithOpen = token.startsWith(pair.open);
                 const startsWithClose = token.startsWith(pair.close);
@@ -308,11 +311,33 @@ function highlightBracketsAndMarkers(tokens) {
                 let isCloseQuote = false;
                 
                 if (isStandaloneQuote) {
-                    // 独立的引号token：根据引号字符判断
-                    if (token === pair.open || (token.length === 1 && token === pair.open)) {
-                        isOpenQuote = true;
-                    } else if (token === pair.close || (token.length === 1 && token === pair.close)) {
-                        isCloseQuote = true;
+                    // 独立的引号token
+                    if (isSameChar) {
+                        // 对于相同字符的引号（如标准双引号"），需要根据上下文判断
+                        // 如果栈为空或栈顶是其他类型的括号，这是开引号
+                        // 如果栈不为空且栈顶是相同类型的引号，这是闭引号
+                        if (stack.length === 0 || stack[stack.length - 1].pairType !== pair.type) {
+                            isOpenQuote = true;
+                        } else {
+                            // 检查前一个token，如果前一个token是冒号、逗号、开括号等，可能是开引号
+                            // 如果前一个token是内容token，可能是闭引号
+                            const prevToken = i > 0 ? tokens[i - 1] : '';
+                            const isAfterSeparator = prevToken === ':' || prevToken === ',' || 
+                                                      prevToken === '{' || prevToken === '[' || 
+                                                      prevToken.trim() === '';
+                            if (isAfterSeparator) {
+                                isOpenQuote = true;
+                            } else {
+                                isCloseQuote = true;
+                            }
+                        }
+                    } else {
+                        // 不同字符的引号（如智能引号），直接判断
+                        if (token === pair.open || (token.length === 1 && token === pair.open)) {
+                            isOpenQuote = true;
+                        } else if (token === pair.close || (token.length === 1 && token === pair.close)) {
+                            isCloseQuote = true;
+                        }
                     }
                 } else {
                     // token包含引号：根据位置和上下文判断
@@ -332,15 +357,30 @@ function highlightBracketsAndMarkers(tokens) {
                 
                 if (isOpenQuote) {
                     // 遇到开引号，入栈并分配颜色
-                    stack.push({ index: i, color: typeColorIndex });
+                    stack.push({ index: i, color: typeColorIndex, pairType: pair.type });
                     typeColorIndex++; // 为下一对引号准备新颜色
                 } else if (isCloseQuote) {
                     // 遇到闭引号，尝试配对（从栈顶取出最近的未配对开引号）
-                    if (stack.length > 0) {
-                        const openInfo = stack.pop();
-                        // 使用开引号时分配的颜色
-                        pairInfo[openInfo.index] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: true };
-                        pairInfo[i] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: false };
+                    // 对于相同字符的引号，需要找到最近的同类型引号
+                    if (isSameChar) {
+                        // 从栈顶向下查找最近的同类型引号
+                        let found = false;
+                        for (let j = stack.length - 1; j >= 0; j--) {
+                            if (stack[j].pairType === pair.type) {
+                                const openInfo = stack.splice(j, 1)[0];
+                                pairInfo[openInfo.index] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: true };
+                                pairInfo[i] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: false };
+                                found = true;
+                                break;
+                            }
+                        }
+                    } else {
+                        // 不同字符的引号，直接从栈顶取出
+                        if (stack.length > 0) {
+                            const openInfo = stack.pop();
+                            pairInfo[openInfo.index] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: true };
+                            pairInfo[i] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: false };
+                        }
                     }
                 }
             } else {

@@ -229,6 +229,10 @@ function displayResults(data) {
     // 更新表格
     resultsTbody.innerHTML = data.results.map(result => {
         const tokenPreview = result.token_preview || [];
+        const totalTokens = result.token_count || 0;
+        const previewCount = result.preview_count || tokenPreview.length;
+        
+        // 显示所有token（不再限制为100个）
         const previewHtml = tokenPreview.length > 0
             ? tokenPreview.map(token => {
                 // 转义HTML特殊字符
@@ -242,14 +246,17 @@ function displayResults(data) {
             }).join('')
             : '<span class="text-tertiary">无预览</span>';
 
-        const moreTokens = result.token_count > result.preview_count
-            ? `<span class="text-tertiary">... 还有 ${result.token_count - result.preview_count} 个token</span>`
+        // 如果后端只返回了部分token，显示提示信息
+        const moreTokens = totalTokens > previewCount
+            ? `<div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.875rem;">
+                 <strong>提示：</strong>后端仅返回了前 ${previewCount} 个token的预览，实际共有 ${totalTokens.toLocaleString()} 个token
+               </div>`
             : '';
 
         return `
             <tr>
                 <td class="model-name">${result.model}</td>
-                <td class="token-count">${result.token_count.toLocaleString()}</td>
+                <td class="token-count">${totalTokens.toLocaleString()}</td>
                 <td>${result.char_per_token.toFixed(2)}</td>
                 <td>
                     <div class="token-preview">

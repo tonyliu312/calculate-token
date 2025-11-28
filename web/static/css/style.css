@@ -373,6 +373,11 @@ body {
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-primary);
+    vertical-align: top;
+}
+
+.results-table td:last-child {
+    min-width: 300px;
 }
 
 .results-table tbody tr:hover {
@@ -391,10 +396,36 @@ body {
 }
 
 .token-preview {
-    max-width: 400px;
+    max-width: 500px;
+    max-height: 300px;
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0.5rem;
+    background: var(--bg-primary);
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+/* 分词预览区域的滚动条样式 */
+.token-preview::-webkit-scrollbar {
+    width: 6px;
+}
+
+.token-preview::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 3px;
+}
+
+.token-preview::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.token-preview::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
 }
 
 .token-item {

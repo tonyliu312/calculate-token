@@ -247,19 +247,18 @@ def calculate_tokens():
             # 使用所有模型
             results = calculator.calculate_tokens(text)
         
-        # 获取分词结果（前100个token作为预览）
+        # 获取分词结果（返回所有token，前端通过滚动条查看）
         token_details = {}
         for model_key in results.keys():
             if results[model_key] >= 0:
                 try:
                     token_ids = calculator.get_token_ids(text, model_key)
-                    # 只取前100个token作为预览
-                    preview_ids = token_ids[:100]
-                    tokens = calculator.decode_tokens(preview_ids, model_key)
+                    # 返回所有token，不再限制数量（前端通过滚动条查看）
+                    tokens = calculator.decode_tokens(token_ids, model_key)
                     token_details[model_key] = {
                         'total_tokens': len(token_ids),
                         'preview_tokens': tokens,
-                        'preview_count': len(preview_ids)
+                        'preview_count': len(tokens)
                     }
                 except Exception as e:
                     print(f"警告: 获取 {model_key} 的分词详情时出错: {e}")

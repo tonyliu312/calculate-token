@@ -200,6 +200,110 @@ async function handleCalculate() {
     }
 }
 
+// 括号配对配置
+const BRACKET_PAIRS = [
+    { open: '(', close: ')' },
+    { open: '[', close: ']' },
+    { open: '{', close: '}' },
+    { open: '<', close: '>' },
+    { open: '「', close: '」' },
+    { open: '『', close: '』' },
+    { open: '【', close: '】' },
+    { open: '《', close: '》' },
+    { open: '"', close: '"' },
+    { open: '"', close: '"' },
+    { open: ''', close: ''' },
+    { open: ''', close: ''' },
+    { open: '（', close: '）' },
+    { open: '［', close: '］' },
+    { open: '｛', close: '｝' },
+    { open: '〈', close: '〉' },
+];
+
+// 起止符号配置（特殊token标记）
+const START_END_TOKENS = [
+    { start: '<|start|>', end: '<|end|>' },
+    { start: '<s>', end: '</s>' },
+    { start: '<bos>', end: '<eos>' },
+    { start: '[CLS]', end: '[SEP]' },
+    { start: '<|im_start|>', end: '<|im_end|>' },
+    { start: '<|begin|>', end: '<|finish|>' },
+];
+
+// 高亮token中的括号和起止符号（只高亮成对出现的）
+function highlightBracketsAndMarkers(tokens) {
+    // 初始化配对信息
+    const pairInfo = new Array(tokens.length).fill(null);
+    let pairColorIndex = 0;
+    
+    // 处理括号配对
+    for (const pair of BRACKET_PAIRS) {
+        const stack = [];
+        
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            
+            // 检查是否是开括号（精确匹配或token等于开括号）
+            const isOpenBracket = token === pair.open || 
+                                 (token.length === 1 && token === pair.open);
+            
+            // 检查是否是闭括号（精确匹配或token等于闭括号）
+            const isCloseBracket = token === pair.close || 
+                                  (token.length === 1 && token === pair.close);
+            
+            if (isOpenBracket) {
+                // 遇到开括号，入栈
+                stack.push({ index: i, color: pairColorIndex });
+            } else if (isCloseBracket) {
+                // 遇到闭括号，尝试配对
+                if (stack.length > 0) {
+                    const openInfo = stack.pop();
+                    // 只有成功配对才标记
+                    pairInfo[openInfo.index] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: true };
+                    pairInfo[i] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: false };
+                }
+            }
+        }
+        
+        // 如果成功配对了括号，使用下一个颜色索引
+        if (pairInfo.some((p, idx) => p && p.pairIndex === pairColorIndex % 8)) {
+            pairColorIndex++;
+        }
+    }
+    
+    // 处理起止符号配对
+    for (const marker of START_END_TOKENS) {
+        const startIndices = [];
+        const endIndices = [];
+        
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            // 精确匹配起止符号
+            if (token === marker.start || token.trim() === marker.start) {
+                startIndices.push(i);
+            }
+            if (token === marker.end || token.trim() === marker.end) {
+                endIndices.push(i);
+            }
+        }
+        
+        // 只配对相同数量的起止符号（成对出现）
+        const minPairs = Math.min(startIndices.length, endIndices.length);
+        if (minPairs > 0 && startIndices.length === endIndices.length) {
+            // 只有起止符号数量相等时才高亮（确保完全配对）
+            for (let i = 0; i < minPairs; i++) {
+                const startIdx = startIndices[i];
+                const endIdx = endIndices[i];
+                pairInfo[startIdx] = { type: 'marker', pairIndex: pairColorIndex % 8, isOpen: true };
+                pairInfo[endIdx] = { type: 'marker', pairIndex: pairColorIndex % 8, isOpen: false };
+            }
+            pairColorIndex++;
+        }
+    }
+    
+    return pairInfo;
+}
+
 // 显示结果
 function displayResults(data) {
     // 显示结果区域
@@ -232,9 +336,12 @@ function displayResults(data) {
         const totalTokens = result.token_count || 0;
         const previewCount = result.preview_count || tokenPreview.length;
         
+        // 高亮括号和起止符号
+        const pairInfo = highlightBracketsAndMarkers(tokenPreview);
+        
         // 显示所有token（不再限制为100个）
         const previewHtml = tokenPreview.length > 0
-            ? tokenPreview.map(token => {
+            ? tokenPreview.map((token, index) => {
                 // 转义HTML特殊字符
                 const escapedToken = token
                     .replace(/&/g, '&amp;')
@@ -242,7 +349,15 @@ function displayResults(data) {
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;');
-                return `<span class="token-item" title="${escapedToken}">${escapedToken}</span>`;
+                
+                // 获取配对信息
+                const pair = pairInfo[index];
+                let className = 'token-item';
+                if (pair) {
+                    className += ` bracket-pair-${pair.pairIndex % 8}`;
+                }
+                
+                return `<span class="${className}" title="${escapedToken}">${escapedToken}</span>`;
             }).join('')
             : '<span class="text-tertiary">无预览</span>';
 

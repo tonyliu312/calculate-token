@@ -437,6 +437,29 @@ body {
     font-family: 'Courier New', monospace;
     color: var(--text-primary);
     border: 1px solid var(--border-color);
+    transition: all 0.2s;
+}
+
+/* 括号高亮样式 */
+.token-item.bracket-pair-0 { background: rgba(74, 158, 255, 0.2); border-color: rgba(74, 158, 255, 0.5); }
+.token-item.bracket-pair-1 { background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); }
+.token-item.bracket-pair-2 { background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); }
+.token-item.bracket-pair-3 { background: rgba(139, 92, 246, 0.2); border-color: rgba(139, 92, 246, 0.5); }
+.token-item.bracket-pair-4 { background: rgba(236, 72, 153, 0.2); border-color: rgba(236, 72, 153, 0.5); }
+.token-item.bracket-pair-5 { background: rgba(6, 182, 212, 0.2); border-color: rgba(6, 182, 212, 0.5); }
+.token-item.bracket-pair-6 { background: rgba(251, 146, 60, 0.2); border-color: rgba(251, 146, 60, 0.5); }
+.token-item.bracket-pair-7 { background: rgba(34, 197, 94, 0.2); border-color: rgba(34, 197, 94, 0.5); }
+
+.token-item.bracket-pair-0:hover,
+.token-item.bracket-pair-1:hover,
+.token-item.bracket-pair-2:hover,
+.token-item.bracket-pair-3:hover,
+.token-item.bracket-pair-4:hover,
+.token-item.bracket-pair-5:hover,
+.token-item.bracket-pair-6:hover,
+.token-item.bracket-pair-7:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* 错误消息 */

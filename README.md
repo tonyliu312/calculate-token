@@ -40,8 +40,10 @@ pip install -r requirements.txt
 
 如果Windows机器无法联网，请参考 [OFFLINE_INSTALL.md](OFFLINE_INSTALL.md) 进行离线安装。
 
+**⚠️ 重要提示**：当前 `packages/` 目录中的包是针对Python 3.11的。如果你的Python版本是3.8，请使用 `download_packages_py38.bat` 重新下载。
+
 **快速步骤：**
-1. 在有网络的机器上运行 `download_packages.bat` 或 `download_packages.sh` 下载所有依赖包
+1. 在有网络的机器上运行 `download_packages.bat`（Python 3.11）或 `download_packages_py38.bat`（Python 3.8）下载所有依赖包
 2. 将 `packages/` 目录、`requirements.txt` 和 `install_offline.bat` 复制到离线Windows机器
 3. 在Windows机器上运行 `install_offline.bat`
 

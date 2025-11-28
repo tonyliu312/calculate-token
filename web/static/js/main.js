@@ -314,22 +314,41 @@ function highlightBracketsAndMarkers(tokens) {
                     // 独立的引号token
                     if (isSameChar) {
                         // 对于相同字符的引号（如标准双引号"），需要根据上下文判断
-                        // 如果栈为空或栈顶是其他类型的括号，这是开引号
-                        // 如果栈不为空且栈顶是相同类型的引号，这是闭引号
-                        if (stack.length === 0 || stack[stack.length - 1].pairType !== pair.type) {
+                        // 策略：检查前一个token和栈的状态
+                        const prevToken = i > 0 ? tokens[i - 1] : '';
+                        const prevTokenTrimmed = prevToken.trim();
+                        
+                        // 如果栈为空，这一定是开引号
+                        if (stack.length === 0) {
                             isOpenQuote = true;
-                        } else {
-                            // 检查前一个token，如果前一个token是冒号、逗号、开括号等，可能是开引号
-                            // 如果前一个token是内容token，可能是闭引号
-                            const prevToken = i > 0 ? tokens[i - 1] : '';
-                            const isAfterSeparator = prevToken === ':' || prevToken === ',' || 
-                                                      prevToken === '{' || prevToken === '[' || 
-                                                      prevToken.trim() === '';
-                            if (isAfterSeparator) {
+                        }
+                        // 如果栈不为空，检查栈顶是否是同类型的引号
+                        else if (stack.length > 0 && stack[stack.length - 1].pairType === pair.type) {
+                            // 栈顶有未配对的同类型引号，检查前一个token
+                            // 如果前一个token是冒号、逗号、开括号、空白等，说明这是新的开引号
+                            // 如果前一个token是内容（非分隔符），说明这是闭引号
+                            const isAfterSeparator = prevTokenTrimmed === '' || 
+                                                      prevToken === ':' || 
+                                                      prevToken === ',' || 
+                                                      prevToken === '{' || 
+                                                      prevToken === '[' ||
+                                                      prevToken === '(' ||
+                                                      prevTokenTrimmed === ':' ||
+                                                      prevTokenTrimmed === ',';
+                            
+                            // 检查前一个token是否包含引号（可能是 "text" 这样的token）
+                            const prevHasQuote = prevToken.includes(pair.open) || prevToken.includes(pair.close);
+                            
+                            if (isAfterSeparator && !prevHasQuote) {
+                                // 在分隔符后，且前一个token不包含引号，这是新的开引号
                                 isOpenQuote = true;
                             } else {
+                                // 在内容后，这是闭引号
                                 isCloseQuote = true;
                             }
+                        } else {
+                            // 栈顶是其他类型的括号，这是开引号
+                            isOpenQuote = true;
                         }
                     } else {
                         // 不同字符的引号（如智能引号），直接判断

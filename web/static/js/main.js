@@ -237,25 +237,35 @@ async function handleCalculate() {
     }
 }
 
-// 括号配对配置
-const BRACKET_PAIRS = [
-    { open: '(', close: ')', type: 'paren' },
-    { open: '[', close: ']', type: 'bracket' },
-    { open: '{', close: '}', type: 'brace' },
-    { open: '<', close: '>', type: 'angle' },
-    { open: '「', close: '」', type: 'quote' },
-    { open: '『', close: '』', type: 'quote' },
-    { open: '【', close: '】', type: 'bracket' },
-    { open: '《', close: '》', type: 'quote' },
-    { open: '"', close: '"', type: 'quote' },  // 标准双引号（左右相同，需要上下文判断）
-    { open: '"', close: '"', type: 'quote' },  // 智能双引号（左右不同）
-    { open: '\u2018', close: '\u2019', type: 'quote' }, // 左单引号 ' 和右单引号 '
-    { open: '\u201C', close: '\u201D', type: 'quote' }, // 左双引号 " 和右双引号 "
-    { open: '（', close: '）', type: 'paren' },
-    { open: '［', close: '］', type: 'bracket' },
-    { open: '｛', close: '｝', type: 'brace' },
-    { open: '〈', close: '〉', type: 'angle' },
-];
+// 所有成对符号配置
+// 分为两类：开闭不同的符号，开闭相同的符号
+const PAIR_SYMBOLS = {
+    // 开闭不同的符号：直接映射
+    openToClose: {
+        '(': ')',
+        '[': ']',
+        '{': '}',
+        '<': '>',
+        '（': '）',
+        '【': '】',
+        '［': '］',
+        '｛': '｝',
+        '「': '」',
+        '『': '』',
+        '〈': '〉',
+        '《': '》',
+        '\u201C': '\u201D',   // 中文左双引号 " -> 中文右双引号 "
+        '\u2018': '\u2019',   // 中文左单引号 ' -> 中文右单引号 '
+    },
+    // 开闭相同的符号：需要配对匹配
+    sameChar: ['"', "'", '`', '```'],
+};
+
+// 创建反向映射（闭括号 -> 开括号）
+const closeToOpen = {};
+for (const [open, close] of Object.entries(PAIR_SYMBOLS.openToClose)) {
+    closeToOpen[close] = open;
+}
 
 // 起止符号配置（特殊token标记）
 const START_END_TOKENS = [
@@ -269,190 +279,103 @@ const START_END_TOKENS = [
 
 // 高亮token中的括号和起止符号（只高亮成对出现的）
 function highlightBracketsAndMarkers(tokens) {
-    // 初始化配对信息
     const pairInfo = new Array(tokens.length).fill(null);
-    let pairColorIndex = 0;
+    let colorIndex = 0;
+    const bracketStack = [];
+    const quoteStack = [];
     
-    // 处理括号配对（支持嵌套）
-    // 为每种括号类型单独处理，确保嵌套括号使用不同颜色
-    for (const pair of BRACKET_PAIRS) {
-        const stack = [];
-        // 每种括号类型使用独立的颜色索引范围
-        let typeColorIndex = pairColorIndex;
+    // 统计字符出现次数
+    function countChar(str, char) {
+        let count = 0;
+        for (const c of str) if (c === char) count++;
+        return count;
+    }
+    
+    // 第一遍：处理括号（优先级高）
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i].trim();
+        if (!token) continue;
         
-        for (let i = 0; i < tokens.length; i++) {
-            const token = tokens[i];
+        // 遍历所有括号类型
+        for (const [openChar, closeChar] of Object.entries(PAIR_SYMBOLS.openToClose)) {
+            // 统计开括号并入栈
+            const openCount = countChar(token, openChar);
+            for (let k = 0; k < openCount; k++) {
+                bracketStack.push({ index: i, char: openChar, color: colorIndex++ });
+            }
             
-            // 检查token是否完全等于括号，或者只包含括号字符
-            const isExactOpen = token === pair.open;
-            const isExactClose = token === pair.close;
-            const isOnlyOpen = token.length === 1 && token === pair.open;
-            const isOnlyClose = token.length === 1 && token === pair.close;
-            
-            // 对于引号类型，需要特殊处理（引号可以出现在token中间）
-            if (pair.type === 'quote') {
-                // 引号匹配：需要更精确的逻辑
-                // 对于JSON等场景，引号通常是独立的token或出现在token边界
-                
-                // 检查是否是独立的引号token（完全等于引号字符）
-                const isStandaloneQuote = isExactOpen || isExactClose || isOnlyOpen || isOnlyClose;
-                
-                // 对于标准双引号 "，开引号和闭引号是同一个字符，需要根据上下文判断
-                const isSameChar = pair.open === pair.close;
-                
-                // 检查token边界处的引号
-                const startsWithOpen = token.startsWith(pair.open);
-                const startsWithClose = token.startsWith(pair.close);
-                const endsWithOpen = token.endsWith(pair.open);
-                const endsWithClose = token.endsWith(pair.close);
-                
-                // 判断是开引号还是闭引号
-                let isOpenQuote = false;
-                let isCloseQuote = false;
-                
-                if (isStandaloneQuote) {
-                    // 独立的引号token
-                    if (isSameChar) {
-                        // 对于相同字符的引号（如标准双引号"），需要根据上下文判断
-                        // 策略：检查前一个token和栈的状态
-                        const prevToken = i > 0 ? tokens[i - 1] : '';
-                        const prevTokenTrimmed = prevToken.trim();
-                        
-                        // 如果栈为空，这一定是开引号
-                        if (stack.length === 0) {
-                            isOpenQuote = true;
+            // 统计闭括号并配对
+            const closeCount = countChar(token, closeChar);
+            for (let k = 0; k < closeCount; k++) {
+                for (let j = bracketStack.length - 1; j >= 0; j--) {
+                    if (bracketStack[j].char === openChar) {
+                        const openInfo = bracketStack.splice(j, 1)[0];
+                        if (pairInfo[openInfo.index] === null) {
+                            pairInfo[openInfo.index] = { pairIndex: openInfo.color % 8 };
                         }
-                        // 如果栈不为空，检查栈顶是否是同类型的引号
-                        else if (stack.length > 0 && stack[stack.length - 1].pairType === pair.type) {
-                            // 栈顶有未配对的同类型引号，检查前一个token
-                            // 如果前一个token是冒号、逗号、开括号、空白等，说明这是新的开引号
-                            // 如果前一个token是内容（非分隔符），说明这是闭引号
-                            const isAfterSeparator = prevTokenTrimmed === '' || 
-                                                      prevToken === ':' || 
-                                                      prevToken === ',' || 
-                                                      prevToken === '{' || 
-                                                      prevToken === '[' ||
-                                                      prevToken === '(' ||
-                                                      prevTokenTrimmed === ':' ||
-                                                      prevTokenTrimmed === ',';
-                            
-                            // 检查前一个token是否包含引号（可能是 "text" 这样的token）
-                            const prevHasQuote = prevToken.includes(pair.open) || prevToken.includes(pair.close);
-                            
-                            if (isAfterSeparator && !prevHasQuote) {
-                                // 在分隔符后，且前一个token不包含引号，这是新的开引号
-                                isOpenQuote = true;
-                            } else {
-                                // 在内容后，这是闭引号
-                                isCloseQuote = true;
-                            }
-                        } else {
-                            // 栈顶是其他类型的括号，这是开引号
-                            isOpenQuote = true;
+                        if (pairInfo[i] === null) {
+                            pairInfo[i] = { pairIndex: openInfo.color % 8 };
                         }
-                    } else {
-                        // 不同字符的引号（如智能引号），直接判断
-                        if (token === pair.open || (token.length === 1 && token === pair.open)) {
-                            isOpenQuote = true;
-                        } else if (token === pair.close || (token.length === 1 && token === pair.close)) {
-                            isCloseQuote = true;
-                        }
-                    }
-                } else {
-                    // token包含引号：根据位置和上下文判断
-                    // 如果token以开引号开始，且不以闭引号结束，可能是开引号
-                    if (startsWithOpen && !endsWithClose && !startsWithClose) {
-                        isOpenQuote = true;
-                    }
-                    // 如果token以闭引号结束，且不以开引号开始，可能是闭引号
-                    else if (endsWithClose && !startsWithOpen && !endsWithOpen) {
-                        isCloseQuote = true;
-                    }
-                    // 如果token以开引号开始且以闭引号结束（如 "text"），优先判断为开引号
-                    else if (startsWithOpen && endsWithClose) {
-                        isOpenQuote = true;
-                    }
-                }
-                
-                if (isOpenQuote) {
-                    // 遇到开引号，入栈并分配颜色
-                    stack.push({ index: i, color: typeColorIndex, pairType: pair.type });
-                    typeColorIndex++; // 为下一对引号准备新颜色
-                } else if (isCloseQuote) {
-                    // 遇到闭引号，尝试配对（从栈顶取出最近的未配对开引号）
-                    // 对于相同字符的引号，需要找到最近的同类型引号
-                    if (isSameChar) {
-                        // 从栈顶向下查找最近的同类型引号
-                        let found = false;
-                        for (let j = stack.length - 1; j >= 0; j--) {
-                            if (stack[j].pairType === pair.type) {
-                                const openInfo = stack.splice(j, 1)[0];
-                                pairInfo[openInfo.index] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: true };
-                                pairInfo[i] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: false };
-                                found = true;
-                                break;
-                            }
-                        }
-                    } else {
-                        // 不同字符的引号，直接从栈顶取出
-                        if (stack.length > 0) {
-                            const openInfo = stack.pop();
-                            pairInfo[openInfo.index] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: true };
-                            pairInfo[i] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: false };
-                        }
-                    }
-                }
-            } else {
-                // 其他括号类型：精确匹配
-                if (isExactOpen || isOnlyOpen) {
-                    // 遇到开括号，入栈并分配颜色
-                    stack.push({ index: i, color: typeColorIndex });
-                    typeColorIndex++; // 为下一对括号准备新颜色
-                } else if (isExactClose || isOnlyClose) {
-                    // 遇到闭括号，尝试配对
-                    if (stack.length > 0) {
-                        const openInfo = stack.pop();
-                        // 使用开括号时分配的颜色
-                        pairInfo[openInfo.index] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: true };
-                        pairInfo[i] = { type: 'bracket', pairIndex: openInfo.color % 8, isOpen: false };
+                        break;
                     }
                 }
             }
         }
+    }
+    
+    // 第二遍：处理引号
+    for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i].trim();
+        if (!token) continue;
         
-        // 更新全局颜色索引，为下一种括号类型准备
-        if (typeColorIndex > pairColorIndex) {
-            pairColorIndex = typeColorIndex;
+        for (const quote of PAIR_SYMBOLS.sameChar) {
+            const count = countChar(token, quote);
+            for (let k = 0; k < count; k++) {
+                let found = false;
+                for (let j = quoteStack.length - 1; j >= 0; j--) {
+                    if (quoteStack[j].char === quote) {
+                        const openInfo = quoteStack.splice(j, 1)[0];
+                        if (pairInfo[openInfo.index] === null) {
+                            pairInfo[openInfo.index] = { pairIndex: openInfo.color % 8 };
+                        }
+                        if (pairInfo[i] === null) {
+                            pairInfo[i] = { pairIndex: openInfo.color % 8 };
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    quoteStack.push({ index: i, char: quote, color: colorIndex++ });
+                }
+            }
+            if (count > 0) break;
         }
     }
     
-    // 处理起止符号配对
+    // 处理起止符号配对（如 <s></s>, [CLS][SEP] 等）
     for (const marker of START_END_TOKENS) {
         const startIndices = [];
         const endIndices = [];
         
         for (let i = 0; i < tokens.length; i++) {
-            const token = tokens[i];
-            // 精确匹配起止符号
-            if (token === marker.start || token.trim() === marker.start) {
+            const token = tokens[i].trim();
+            if (token === marker.start) {
                 startIndices.push(i);
             }
-            if (token === marker.end || token.trim() === marker.end) {
+            if (token === marker.end) {
                 endIndices.push(i);
             }
         }
         
-        // 只配对相同数量的起止符号（成对出现）
+        // 只配对相同数量的起止符号
         const minPairs = Math.min(startIndices.length, endIndices.length);
         if (minPairs > 0 && startIndices.length === endIndices.length) {
-            // 只有起止符号数量相等时才高亮（确保完全配对）
             for (let i = 0; i < minPairs; i++) {
-                const startIdx = startIndices[i];
-                const endIdx = endIndices[i];
-                pairInfo[startIdx] = { type: 'marker', pairIndex: pairColorIndex % 8, isOpen: true };
-                pairInfo[endIdx] = { type: 'marker', pairIndex: pairColorIndex % 8, isOpen: false };
+                pairInfo[startIndices[i]] = { pairIndex: colorIndex % 8 };
+                pairInfo[endIndices[i]] = { pairIndex: colorIndex % 8 };
+                colorIndex++;
             }
-            pairColorIndex++;
         }
     }
     

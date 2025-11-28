@@ -332,8 +332,8 @@ function highlightBracketsAndMarkers(tokens) {
                 
                 if (isOpenQuote) {
                     // 遇到开引号，入栈并分配颜色
-                    stack.push({ index: i, color: pairColorIndex });
-                    pairColorIndex++; // 为下一对引号准备新颜色
+                    stack.push({ index: i, color: typeColorIndex });
+                    typeColorIndex++; // 为下一对引号准备新颜色
                 } else if (isCloseQuote) {
                     // 遇到闭引号，尝试配对（从栈顶取出最近的未配对开引号）
                     if (stack.length > 0) {
@@ -347,8 +347,8 @@ function highlightBracketsAndMarkers(tokens) {
                 // 其他括号类型：精确匹配
                 if (isExactOpen || isOnlyOpen) {
                     // 遇到开括号，入栈并分配颜色
-                    stack.push({ index: i, color: pairColorIndex });
-                    pairColorIndex++; // 为下一对括号准备新颜色
+                    stack.push({ index: i, color: typeColorIndex });
+                    typeColorIndex++; // 为下一对括号准备新颜色
                 } else if (isExactClose || isOnlyClose) {
                     // 遇到闭括号，尝试配对
                     if (stack.length > 0) {
@@ -359,6 +359,11 @@ function highlightBracketsAndMarkers(tokens) {
                     }
                 }
             }
+        }
+        
+        // 更新全局颜色索引，为下一种括号类型准备
+        if (typeColorIndex > pairColorIndex) {
+            pairColorIndex = typeColorIndex;
         }
     }
     
